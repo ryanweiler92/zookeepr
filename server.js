@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 //sets variable that sets route that we can request data from. this is the animals json file.
 const { animals } = require('./data/animals');
 //variable to require the npm package express
@@ -7,8 +10,14 @@ const e = require('express');
 //when Heroku runs our app it sets and environment variable called "process.env.PORT". We are telling our app to use that port if it has been set, and if not to default to port 80(???)
 //module says to use the port that has been set or default to port 80 but then has us write "3001" (???)
 const PORT = process.env.PORT || 3001;
-//istantiate the server
+//instantiate the server
 const app = express();
+
+//these 2 variables are related to the POST method; BOTH of these middleware functions need to be set up every time you create a server that accept POST data
+//parse incoming string or array data     app.use() method is middleware; This method takes incoming POST data and converts to key/value pairings that can be accessed in req.body object; extended true means that there maybe sub-array data nested as well.
+app.use(express.urlencoded({ extended: true }));
+//parse incoming JSON data into the req.body object
+app.use(express.json());
 
 //function is called from the first app.get.. takes parameter of query (EX. diet=carnivore???) and the animal array
 function filterByQuery(query, animalsArray) {
@@ -58,6 +67,39 @@ function findById(id, animalsArray) {
     //sets variable to filter the animals array and find each id that matches the parameter id (the [0] says choose only the first one??)
     const result = animalsArray.filter(animal => animal.id === id)[0];
     return result;
+};
+
+//this function is being called from the POST callback function; adds new animal data to the animalsArray
+function createNewAnimal(body, animalsArray) {
+    //this is the animal data being entered 
+    const animal = body;
+    //push the new animal data to the animals array
+    animalsArray.push(animal)
+    //synchronous verson of fs.writeFile(); doesn't require callback function
+    fs.writeFileSync(
+        //we want to write our animals.json file to the data subdirectory so we use path.join() to join the value of __dirname which is the directory of the file we execute code in with the path to the animals.json file
+        path.join(__dirname, './data/animals.json'),
+        //we need to save the array data as JSON; null means we dont want to edit any of our existing data. 2 indicates we want to create white space between our values to make more readable;
+        JSON.stringify({ animals: animalsArray }, null, 2)
+    );
+    //return finished code to post route for response
+    return animal;
+};
+
+function validateAnimal(animal) {
+    if (!animal.name || typeof animal.name !== 'string') {
+        return false;
+    }
+    if (!animal.species || typeof animal.species !== 'string') {
+        return false;
+    }
+    if (!animal.diet || typeof animal.diet !== 'string') {
+        return false;
+    }
+    if (!animal.personalityTraits || !Array.isArray(animal.personalityTraits)) {
+        return false;s
+    }
+    return true
 }
 
 //req is an object containing information about the HTTP request that raised the event. In response to req, you use res to send back the desired HTTP response.
@@ -86,6 +128,22 @@ app.get('/api/animals/:id', (req, res) => {
         res.send(404)
     }
 });
+
+//another method of the app object that allows us to create routes. POST requests represent the action of a client requesting the server to accept data rather than vice versa.
+app.post('/api/animals', (req, res) => {
+    //set id based on what the next index of the array will be
+    req.body.id = animals.length.toString();
+    //if any data in req.body is incorrect, send 400 error back
+    if (!validateAnimal(req.body)) {
+        res.status(400).send('The animal is not properly formatted');
+    } else {
+        //add animal to json file and animals array in this function
+        const animal = createNewAnimal(req.body, animals);
+    }
+   
+    //POST requests package up data as an object and send to server. req.body is property where we can access that data on server side
+    res.json(req.body)
+})
 
 // app = express() above. we chain the .listen to app. Listen to PORT, a variable defined as const PORT = process.env.PORT || 3001. 
 app.listen(PORT, () => {
