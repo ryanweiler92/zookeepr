@@ -23,10 +23,11 @@ app.use(express.urlencoded({ extended: true }));
 //parse incoming JSON data into the req.body object
 app.use(express.json());
 
-app.use('/api', apiRoutes);
-app.use('/', htmlRoutes);
 //middleware that makes a location (folder) have files that are static resources. This is how the HTML page can access the CSS and javascript.
 app.use(express.static('public'));
+
+app.use('/api', apiRoutes);
+app.use('/', htmlRoutes);
 
 
 
