@@ -18,6 +18,8 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 //parse incoming JSON data into the req.body object
 app.use(express.json());
+//middleware that makes a location (folder) have files that are static resources. This is how the HTML page can access the CSS and javascript.
+app.use(express.static('public'));
 
 //function is called from the first app.get.. takes parameter of query (EX. diet=carnivore???) and the animal array
 function filterByQuery(query, animalsArray) {
@@ -140,10 +142,25 @@ app.post('/api/animals', (req, res) => {
         //add animal to json file and animals array in this function
         const animal = createNewAnimal(req.body, animals);
     }
-   
     //POST requests package up data as an object and send to server. req.body is property where we can access that data on server side
     res.json(req.body)
-})
+});
+//FOR THE INDEX.HTML; respond with an HTML page to display in the browser; the '/' points us to the root route of the server
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/index.html'));
+});
+//FOR THE ANIMALS.HTML file
+app.get('/animals', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/animals.html'));
+});
+//FOR ZOOKEEPERS.HTML file
+app.get('/zookeepers', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/zookeepers.html'));
+});
+//wildcard route redirects any bad requests made when there are no routes that match; this must be last
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/index.html'));
+});
 
 // app = express() above. we chain the .listen to app. Listen to PORT, a variable defined as const PORT = process.env.PORT || 3001. 
 app.listen(PORT, () => {
